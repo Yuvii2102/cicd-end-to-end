@@ -1,67 +1,62 @@
 pipeline {
-    
-    agent any 
-    
-    environment {
-        IMAGE_TAG = "${BUILD_NUMBER}"
-    }
-    
+    agent any
+
     stages {
-        
-        stage('Checkout'){
-           steps {
-                git credentialsId: 'f87a34a8-0e09-45e7-b9cf-6dc68feac670', 
-                url: 'https://github.com/iam-veeramalla/cicd-end-to-end',
-                branch: 'main'
-           }
-        }
 
-        stage('Build Docker'){
-            steps{
-                script{
-                    sh '''
-                    echo 'Buid Docker Image'
-                    docker build -t abhishekf5/cicd-e2e:${BUILD_NUMBER} .
-                    '''
-                }
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
             }
         }
 
-        stage('Push the artifacts'){
-           steps{
-                script{
-                    sh '''
-                    echo 'Push to Repo'
-                    docker push abhishekf5/cicd-e2e:${BUILD_NUMBER}
-                    '''
-                }
+        stage('Verify Repository') {
+            steps {
+                sh '''
+                    echo "Repository contents:"
+                    ls -la
+
+                    echo ""
+                    echo "Git commit:"
+                    git log -1 --oneline
+                '''
             }
         }
-        
-        stage('Checkout K8S manifest SCM'){
+
+        stage('Build Docker Image') {
             steps {
-                git credentialsId: 'f87a34a8-0e09-45e7-b9cf-6dc68feac670', 
-                url: 'https://github.com/iam-veeramalla/cicd-demo-manifests-repo.git',
-                branch: 'main'
+                sh '''
+                    echo "Building Docker image..."
+                    docker build -t todo-app:${BUILD_NUMBER} .
+                '''
             }
         }
-        
-        stage('Update K8S manifest & push to Repo'){
+
+        stage('Run Django Tests') {
             steps {
-                script{
-                    withCredentials([usernamePassword(credentialsId: 'f87a34a8-0e09-45e7-b9cf-6dc68feac670', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        sh '''
-                        cat deploy.yaml
-                        sed -i '' "s/32/${BUILD_NUMBER}/g" deploy.yaml
-                        cat deploy.yaml
-                        git add deploy.yaml
-                        git commit -m 'Updated the deploy yaml | Jenkins Pipeline'
-                        git remote -v
-                        git push https://github.com/iam-veeramalla/cicd-demo-manifests-repo.git HEAD:main
-                        '''                        
-                    }
-                }
+                sh '''
+                    echo "Running Django tests..."
+                    docker run --rm todo-app:${BUILD_NUMBER} python manage.py test
+                '''
             }
+        }
+
+    }
+
+    post {
+        success {
+            echo '✅ CI Pipeline completed successfully!'
+        }
+
+        failure {
+            echo '❌ CI Pipeline failed!'
+        }
+
+        always {
+            sh '''
+                echo "Cleaning temporary Docker image..."
+                docker rmi todo-app:${BUILD_NUMBER} || true
+            '''
         }
     }
 }
