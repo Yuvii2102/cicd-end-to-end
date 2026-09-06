@@ -124,7 +124,7 @@ pipeline {
                         echo ""
                         echo "Pushing updated manifest to GitHub..."
 
-                        GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no" git push origin main
+                        GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no" git push origin HEAD:main
 
                         echo ""
                         echo "Kubernetes manifest pushed successfully!"
