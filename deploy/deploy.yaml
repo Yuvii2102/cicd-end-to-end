@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: todo
-        image: yuvi2102/todo-app:8
+        image: yuvi2102/todo-app:10
         ports:
         - containerPort: 8000
