@@ -6,6 +6,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
+
                 checkout scm
             }
         }
@@ -31,7 +32,8 @@ pipeline {
                     docker build -t todo-app:${BUILD_NUMBER} .
 
                     echo "Tagging image for Docker Hub..."
-                    docker tag todo-app:${BUILD_NUMBER} yuvii2102/todo-app:${BUILD_NUMBER}
+
+                    docker tag todo-app:${BUILD_NUMBER} yuvi2102/todo-app:${BUILD_NUMBER}
                 '''
             }
         }
@@ -82,7 +84,7 @@ pipeline {
 
                         echo "Pushing Docker image..."
 
-                        docker push yuvii2102/todo-app:${BUILD_NUMBER}
+                        docker push yuvi2102/todo-app:${BUILD_NUMBER}
 
                         echo "Docker image pushed successfully!"
                     '''
@@ -92,6 +94,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo '✅ CI/CD Pipeline completed successfully!'
         }
@@ -105,7 +108,8 @@ pipeline {
                 echo "Cleaning temporary Docker images..."
 
                 docker rmi todo-app:${BUILD_NUMBER} || true
-                docker rmi yuvii2102/todo-app:${BUILD_NUMBER} || true
+
+                docker rmi yuvi2102/todo-app:${BUILD_NUMBER} || true
             '''
         }
     }
