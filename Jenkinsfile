@@ -91,6 +91,47 @@ pipeline {
                 }
             }
         }
+
+        stage('Update Kubernetes Manifest') {
+            steps {
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'github-ssh',
+                    keyFileVariable: 'SSH_KEY',
+                    usernameVariable: 'GIT_USERNAME'
+                )]) {
+                    sh '''
+                        echo "Updating Kubernetes image tag..."
+
+                        sed -i "s|image: yuvi2102/todo-app:.*|image: yuvi2102/todo-app:${BUILD_NUMBER}|" deploy/deploy.yaml
+
+                        echo ""
+                        echo "Updated Kubernetes image:"
+                        grep "image:" deploy/deploy.yaml
+
+                        echo ""
+                        echo "Configuring Git..."
+
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@localhost"
+
+                        echo ""
+                        echo "Committing Kubernetes manifest..."
+
+                        git add deploy/deploy.yaml
+
+                        git commit -m "Update Kubernetes image to ${BUILD_NUMBER}" || true
+
+                        echo ""
+                        echo "Pushing updated manifest to GitHub..."
+
+                        GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=no" git push origin main
+
+                        echo ""
+                        echo "Kubernetes manifest pushed successfully!"
+                    '''
+                }
+            }
+        }
     }
 
     post {
