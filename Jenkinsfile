@@ -27,7 +27,11 @@ pipeline {
             steps {
                 sh '''
                     echo "Building Docker image..."
+
                     docker build -t todo-app:${BUILD_NUMBER} .
+
+                    echo "Tagging image for Docker Hub..."
+                    docker tag todo-app:${BUILD_NUMBER} yuvii2102/todo-app:${BUILD_NUMBER}
                 '''
             }
         }
@@ -36,6 +40,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Running Django tests..."
+
                     docker run --rm todo-app:${BUILD_NUMBER} python manage.py test
                 '''
             }
@@ -61,21 +66,46 @@ pipeline {
             }
         }
 
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+                )]) {
+                    sh '''
+                        echo "Logging in to Docker Hub..."
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        echo "Pushing Docker image..."
+
+                        docker push yuvii2102/todo-app:${BUILD_NUMBER}
+
+                        echo "Docker image pushed successfully!"
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ CI Pipeline completed successfully!'
+            echo '✅ CI/CD Pipeline completed successfully!'
         }
 
         failure {
-            echo '❌ CI Pipeline failed!'
+            echo '❌ CI/CD Pipeline failed!'
         }
 
         always {
             sh '''
-                echo "Cleaning temporary Docker image..."
+                echo "Cleaning temporary Docker images..."
+
                 docker rmi todo-app:${BUILD_NUMBER} || true
+                docker rmi yuvii2102/todo-app:${BUILD_NUMBER} || true
             '''
         }
     }
